@@ -157,11 +157,15 @@
     (asserts! (is-contract-owner tx-sender) ERR_UNAUTHORIZED)
     (asserts! (is-valid-certification-type cert-type) ERR_INVALID_CERTIFICATION)
     
-    (map-set certification-authorities
-      {authority: authority, cert-type: cert-type}
-      {approved: true}
+    (let
+      ((validated-authority authority)
+       (validated-cert-type cert-type))
+      (map-set certification-authorities
+        {authority: validated-authority, cert-type: validated-cert-type}
+        {approved: true}
+      )
+      (ok true)
     )
-    (ok true)
   )
 )
 
@@ -180,15 +184,19 @@
       ERR_CERTIFICATION_EXISTS
     )
     
-    (map-set product-certifications
-      {product-id: product-id, cert-type: cert-type}
-      {
-        issuer: tx-sender,
-        timestamp: stacks-block-height,
-        valid: true
-      }
+    (let
+      ((validated-product-id product-id)
+       (validated-cert-type cert-type))
+      (map-set product-certifications
+        {product-id: validated-product-id, cert-type: validated-cert-type}
+        {
+          issuer: tx-sender,
+          timestamp: stacks-block-height,
+          valid: true
+        }
+      )
+      (ok true)
     )
-    (ok true)
   )
 )
 
@@ -207,26 +215,33 @@
 
 ;; Revoke certification
 (define-public (revoke-certification (product-id uint) (cert-type uint))
-  (let
-    (
-      (certification (unwrap! 
-        (map-get? product-certifications {product-id: product-id, cert-type: cert-type})
-        ERR_INVALID_CERTIFICATION
-      ))
-    )
-    (asserts! 
-      (or
-        (is-contract-owner tx-sender)
-        (is-eq (get issuer certification) tx-sender)
-      )
-      ERR_UNAUTHORIZED
-    )
+  (begin
+    (asserts! (is-valid-product-id product-id) ERR_INVALID_PRODUCT)
+    (asserts! (is-valid-certification-type cert-type) ERR_INVALID_CERTIFICATION)
     
-    (map-set product-certifications
-      {product-id: product-id, cert-type: cert-type}
-      (merge certification {valid: false})
+    (let
+      (
+        (certification (unwrap! 
+          (map-get? product-certifications {product-id: product-id, cert-type: cert-type})
+          ERR_INVALID_CERTIFICATION
+        ))
+        (validated-product-id product-id)
+        (validated-cert-type cert-type)
+      )
+      (asserts! 
+        (or
+          (is-contract-owner tx-sender)
+          (is-eq (get issuer certification) tx-sender)
+        )
+        ERR_UNAUTHORIZED
+      )
+      
+      (map-set product-certifications
+        {product-id: validated-product-id, cert-type: validated-cert-type}
+        (merge certification {valid: false})
+      )
+      (ok true)
     )
-    (ok true)
   )
 )
 
