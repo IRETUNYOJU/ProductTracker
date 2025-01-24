@@ -49,11 +49,16 @@
   )
 )
 
+;; Validate product ID
+(define-private (is-valid-product-id (product-id uint))
+  (and (> product-id u0) (<= product-id u1000000))
+)
+
 ;; Register a new product
 (define-public (register-product (product-id uint) (initial-status uint))
   (begin
-    ;; Validate product ID is not zero
-    (asserts! (> product-id u0) ERR_INVALID_PRODUCT)
+    ;; Validate product ID is not zero and within reasonable range
+    (asserts! (is-valid-product-id product-id) ERR_INVALID_PRODUCT)
     
     ;; Validate initial status
     (asserts! (is-valid-status initial-status) ERR_INVALID_STATUS)
@@ -80,6 +85,9 @@
     (
       (product (unwrap! (map-get? product-details {product-id: product-id}) ERR_INVALID_PRODUCT))
     )
+    ;; Validate product ID
+    (asserts! (is-valid-product-id product-id) ERR_INVALID_PRODUCT)
+    
     ;; Validate new status
     (asserts! (is-valid-status new-status) ERR_INVALID_STATUS)
     
